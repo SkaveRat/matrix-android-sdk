@@ -53,7 +53,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
     private int mPublicHighlightColor;
 
     private List<RoomSummary>mRecentsSummariesList;
-    private List<PublicRoom>mPublicRoomsList;
 
     private List<RoomSummary>mFilteredRecentsSummariesList;
     private List<PublicRoom>mFilteredPublicRoomsList;
@@ -82,7 +81,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
         //setNotifyOnChange(false);
 
         mRecentsSummariesList = new ArrayList<RoomSummary>();
-        mPublicRoomsList  = new ArrayList<PublicRoom>();
         mUnreadColor = context.getResources().getColor(R.color.room_summary_unread_background);
         mHighlightColor = context.getResources().getColor(R.color.room_summary_highlight_background);
         mPublicHighlightColor = context.getResources().getColor(R.color.room_summary_public_highlight_background);
@@ -139,47 +137,11 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
                     }
                 }
             }
-
-            for (PublicRoom publicRoom : mPublicRoomsList) {
-                String roomName = publicRoom.name;
-
-                if (!TextUtils.isEmpty(roomName) && (roomName.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
-                    mFilteredPublicRoomsList.add(publicRoom);
-                } else {
-                    String alias = publicRoom.roomAliasName;
-
-                    if (!TextUtils.isEmpty(alias) && (alias.toLowerCase().indexOf(mSearchedPattern) >= 0)) {
-                        mFilteredPublicRoomsList.add(publicRoom);
-                    }
-                }
-            }
         }
 
         super.notifyDataSetChanged();
     }
 
-    /**
-     * publics list management
-     */
-
-    public void setPublicRoomsList(List<PublicRoom> aRoomsList) {
-        if (null == aRoomsList) {
-            mPublicRoomsList  = new ArrayList<PublicRoom>();
-        } else {
-            mPublicRoomsList = aRoomsList;
-            sortSummaries();
-        }
-
-        this.notifyDataSetChanged();
-    }
-
-    public PublicRoom getPublicRoomAt(int index) {
-        if (mSearchedPattern.length() > 0) {
-            return mFilteredPublicRoomsList.get(index);
-        } else {
-            return mPublicRoomsList.get(index);
-        }
-    }
     /**
      * recents list management
      */
@@ -278,13 +240,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 return 0;
             }
         });
-
-        Collections.sort(mPublicRoomsList, new Comparator<PublicRoom>() {
-            @Override
-            public int compare(PublicRoom publicRoom, PublicRoom publicRoom2) {
-                return publicRoom2.numJoinedMembers - publicRoom.numJoinedMembers;
-            }
-        });
     }
 
     @Override
@@ -369,34 +324,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
                 convertView.setBackgroundColor(childPosition % 2 == 0 ? mEvenColourResId : mOddColourResId);
             }
 
-        } else {
-            List<PublicRoom> publicRoomsList = (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList : mPublicRoomsList;
-            PublicRoom publicRoom = publicRoomsList.get(childPosition);
-            String displayName = publicRoom.getDisplayName(mMyUserId);
-
-            TextView textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_roomName);
-            textView.setTypeface(null, Typeface.BOLD);
-            textView.setText(displayName);
-
-            textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_message);
-            textView.setText(publicRoom.topic);
-
-            textView = (TextView) convertView.findViewById(R.id.roomSummaryAdapter_ts);
-            textView.setVisibility(View.VISIBLE);
-
-            if (publicRoom.numJoinedMembers > 1) {
-                textView.setText(publicRoom.numJoinedMembers + " " + mContext.getString(R.string.users));
-            } else {
-                textView.setText(publicRoom.numJoinedMembers + " " + mContext.getString(R.string.user));
-            }
-
-            String alias = publicRoom.getFirstAlias();
-
-            if ((null != alias) && (mHighLightedRooms.indexOf(alias) >= 0)) {
-                convertView.setBackgroundColor(mPublicHighlightColor);
-            } else {
-                convertView.setBackgroundColor(0);
-            }
         }
 
         return convertView;
@@ -425,8 +352,6 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
             }
 
             heading.setText(header);
-        } else {
-            heading.setText(mContext.getResources().getString(R.string.action_public_rooms));
         }
 
         return convertView;
@@ -444,11 +369,7 @@ public class RoomSummaryAdapter extends BaseExpandableListAdapter {
 
     @Override
     public int getChildrenCount(int groupPosition) {
-        if (groupPosition == HomeActivity.recentsGroupIndex) {
-            return (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.size() : mRecentsSummariesList.size();
-        } else {
-            return (mSearchedPattern.length() > 0) ? mFilteredPublicRoomsList.size() : mPublicRoomsList.size();
-        }
+        return (mSearchedPattern.length() > 0) ? mFilteredRecentsSummariesList.size() : mRecentsSummariesList.size();
     }
 
     @Override

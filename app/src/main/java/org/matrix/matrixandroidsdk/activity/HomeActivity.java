@@ -19,7 +19,10 @@ package org.matrix.matrixandroidsdk.activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -41,10 +44,13 @@ import org.matrix.matrixandroidsdk.Matrix;
 import org.matrix.matrixandroidsdk.MyPresenceManager;
 import org.matrix.matrixandroidsdk.R;
 import org.matrix.matrixandroidsdk.ViewedRoomTracker;
+import org.matrix.matrixandroidsdk.adapters.MyRoomsAdapter;
 import org.matrix.matrixandroidsdk.adapters.RoomSummaryAdapter;
 import org.matrix.matrixandroidsdk.util.EventUtils;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
@@ -53,7 +59,7 @@ import java.util.List;
  * new rooms.
  */
 public class HomeActivity extends MXCActionBarActivity {
-    private ExpandableListView mMyRoomList = null;
+//    private ExpandableListView mMyRoomList = null;
 
     public static final int recentsGroupIndex = 0;
     public static final int publicRoomsGroupIndex = 1;
@@ -70,24 +76,21 @@ public class HomeActivity extends MXCActionBarActivity {
                 @Override
                 public void run() {
                     mInitialSyncComplete = true;
-                    for (RoomSummary summary : mSession.getDataHandler().getStore().getSummaries()) {
+                    Log.i("InitSync", "SYNCING");
+                    Collection<RoomSummary> summaries = mSession.getDataHandler().getStore().getSummaries();
+                    Log.i("InitSync count", String.valueOf(summaries.size()));
+                    for (RoomSummary summary : summaries) {
                         addSummary(summary);
                     }
 
                     // highlighted public rooms
-                    mAdapter.highlightRoom("Matrix HQ");
-                    mAdapter.highlightRoom("#matrix:matrix.org");
-                    mAdapter.highlightRoom("#matrix-dev:matrix.org");
-                    mAdapter.highlightRoom("#matrix-fr:matrix.org");
-
-                    mAdapter.setPublicRoomsList(mPublicRooms);
-                    mAdapter.sortSummaries();
+//                    mAdapter.highlightRoom("Matrix HQ");
+//                    mAdapter.highlightRoom("#matrix:matrix.org");
+//                    mAdapter.highlightRoom("#matrix-dev:matrix.org");
+//                    mAdapter.highlightRoom("#matrix-fr:matrix.org");
+//
+//                    mAdapter.sortSummaries();
                     mAdapter.notifyDataSetChanged();
-                    mMyRoomList.expandGroup(recentsGroupIndex);
-                    mMyRoomList.expandGroup(publicRoomsGroupIndex);
-
-                    // load the public load in background
-                    refreshPublicRoomsList();
                 }
             });
         }
@@ -98,7 +101,7 @@ public class HomeActivity extends MXCActionBarActivity {
                 @Override
                 public void run() {
                     if ((event.roomId != null) && isDisplayableEvent(event)) {
-                        mAdapter.setLatestEvent(event, roomState);
+//                        mAdapter.setLatestEvent(event, roomState);
 
                         String selfUserId = mSession.getCredentials().userId;
                         Room room = mSession.getDataHandler().getRoom(event.roomId);
@@ -136,14 +139,14 @@ public class HomeActivity extends MXCActionBarActivity {
 
                         // If we're not currently viewing this room or not sent by myself, increment the unread count
                         if (!event.roomId.equals(ViewedRoomTracker.getInstance().getViewedRoomId()) && !event.userId.equals(selfUserId)) {
-                            mAdapter.incrementUnreadCount(event.roomId);
-
-                            if (EventUtils.shouldHighlight(HomeActivity.this, event)) {
-                                mAdapter.highlightRoom(event.roomId);
-                            }
+//                            mAdapter.incrementUnreadCount(event.roomId);
+//
+//                            if (EventUtils.shouldHighlight(HomeActivity.this, event)) {
+//                                mAdapter.highlightRoom(event.roomId);
+//                            }
                         }
 
-                        mAdapter.sortSummaries();
+//                        mAdapter.sortSummaries();
                         mAdapter.notifyDataSetChanged();
                     }
                 }
@@ -163,7 +166,7 @@ public class HomeActivity extends MXCActionBarActivity {
         private void addNewRoom(String roomId) {
             RoomSummary summary = mSession.getDataHandler().getStore().getSummary(roomId);
             addSummary(summary);
-            mAdapter.sortSummaries();
+//            mAdapter.sortSummaries();
         }
 
         private boolean isMembershipInRoom(String membership, String selfUserId, RoomSummary summary) {
@@ -198,21 +201,50 @@ public class HomeActivity extends MXCActionBarActivity {
     };
 
     private MXSession mSession;
-    private RoomSummaryAdapter mAdapter;
+    private MyRoomsAdapter mAdapter;
     private EditText mSearchRoomEditText;
-
-    private void refreshPublicRoomsList() {
-        Matrix.getInstance(getApplicationContext()).getDefaultSession().getEventsApiClient().loadPublicRooms(new SimpleApiCallback<List<PublicRoom>>() {
-            @Override
-            public void onSuccess(List<PublicRoom> publicRooms) {
-                mAdapter.setPublicRoomsList(publicRooms);
-                mPublicRooms = publicRooms;
-            }
-        });
-    }
+    private RecyclerView mRecyclerView;
+    private LinearLayoutManager mLayoutManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_home);
+
+        mSession = Matrix.getInstance(getApplicationContext()).getDefaultSession();
+        if (mSession == null) {
+            finish();
+            return;
+        }
+        mAdapter = new MyRoomsAdapter();
+
+        mSession.getDataHandler().addListener(mListener);
+
+
+        mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
+
+        // use this setting to improve performance if you know that changes
+        // in content do not change the layout size of the RecyclerView
+        mRecyclerView.setHasFixedSize(true);
+
+        // use a linear layout manager
+        mLayoutManager = new LinearLayoutManager(this);
+        mRecyclerView.setLayoutManager(mLayoutManager);
+
+        // specify an adapter (see also next example)
+//        List<RoomSummary> summaries = new ArrayList<RoomSummary>();
+
+//        RoomSummary room = new RoomSummary();
+//        Event event = new Event();
+//        event.originServerTs =  1425511724L;
+//        room.setLatestEvent(event);
+//        summaries.add(room);
+
+        mRecyclerView.setAdapter(mAdapter);
+    }
+/*
+//    @Override
+    protected void onCreateFoo(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
@@ -227,8 +259,8 @@ public class HomeActivity extends MXCActionBarActivity {
             return;
         }
 
-        mMyRoomList = (ExpandableListView) findViewById(R.id.listView_myRooms);
-        mAdapter = new RoomSummaryAdapter(this, R.layout.adapter_item_my_rooms);
+//        mMyRoomList = (ExpandableListView) findViewById(R.id.listView_myRooms);
+//        mAdapter = new RoomSummaryAdapter(this, R.layout.adapter_item_my_rooms);
 
         if ((null != savedInstanceState) && savedInstanceState.containsKey(UNREAD_MESSAGE_MAP)) {
             // the unread messages map is saved in the bundle
@@ -248,15 +280,9 @@ public class HomeActivity extends MXCActionBarActivity {
             @Override
             public boolean onChildClick(ExpandableListView parent, View v,
                                         int groupPosition, int childPosition, long id) {
-                String roomId;
 
-                if (groupPosition == recentsGroupIndex) {
-                    roomId = mAdapter.getRoomSummaryAt(childPosition).getRoomId();
-                    mAdapter.resetUnreadCount(roomId);
-                } else {
-                    roomId = mAdapter.getPublicRoomAt(childPosition).roomId;
-                }
-
+                String roomId = mAdapter.getRoomSummaryAt(childPosition).getRoomId();
+                mAdapter.resetUnreadCount(roomId);
                 CommonActivityUtils.goToRoomPage(roomId, HomeActivity.this);
                 mAdapter.notifyDataSetChanged();
 
@@ -264,14 +290,6 @@ public class HomeActivity extends MXCActionBarActivity {
             }
         });
 
-        mMyRoomList.setOnGroupExpandListener(new ExpandableListView.OnGroupExpandListener() {
-            @Override
-            public void onGroupExpand(int groupPosition) {
-                if (groupPosition == publicRoomsGroupIndex) {
-                    refreshPublicRoomsList();
-                }
-            }
-        });
 
         mSearchRoomEditText = (EditText) this.findViewById(R.id.editText_search_room);
         mSearchRoomEditText.addTextChangedListener(new TextWatcher() {
@@ -287,14 +305,14 @@ public class HomeActivity extends MXCActionBarActivity {
             }
         });
     }
-
+*/
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
         // save the unread messages counters
         // to avoid resetting counters after a screen rotation
-        if ((null != mAdapter) && (null != mAdapter.getUnreadCountMap())) {
-            savedInstanceState.putSerializable(UNREAD_MESSAGE_MAP, mAdapter.getUnreadCountMap());
-        }
+//        if ((null != mAdapter) && (null != mAdapter.getUnreadCountMap())) {
+//            savedInstanceState.putSerializable(UNREAD_MESSAGE_MAP, mAdapter.getUnreadCountMap());
+//        }
 
         // Always call the superclass so it can save the view hierarchy state
         super.onSaveInstanceState(savedInstanceState);
@@ -304,8 +322,6 @@ public class HomeActivity extends MXCActionBarActivity {
     private void toggleSearchButton() {
         if (mSearchRoomEditText.getVisibility() == View.GONE) {
             mSearchRoomEditText.setVisibility(View.VISIBLE);
-            mMyRoomList.expandGroup(recentsGroupIndex);
-            mMyRoomList.expandGroup(publicRoomsGroupIndex);
         } else {
             mSearchRoomEditText.setVisibility(View.GONE);
             // force to hide the keyboard
@@ -408,7 +424,7 @@ public class HomeActivity extends MXCActionBarActivity {
     }
 
     private void markAllMessagesAsRead(){
-        mAdapter.resetUnreadCounts();
+//        mAdapter.resetUnreadCounts();
         mAdapter.notifyDataSetChanged();
     }
 }

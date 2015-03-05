@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 19
+    compileSdkVersion 21
     buildToolsVersion '19.1.0'
 
     packagingOptions {
@@ -12,7 +12,7 @@ android {
     defaultConfig {
         applicationId "org.matrix.matrixandroidsdk"
         minSdkVersion 11
-        targetSdkVersion 19
+        targetSdkVersion 21
         versionCode 1
         versionName "0.2.2"
     }
@@ -53,7 +53,8 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(':sdk')
-    compile 'com.android.support:appcompat-v7:19.0.1'
     compile 'com.google.android.gms:play-services:3.1.+'
+    compile 'com.android.support:appcompat-v7:21.0.+'
+    compile 'com.android.support:recyclerview-v7:21.0.0'
 }
 
